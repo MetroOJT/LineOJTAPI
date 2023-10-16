@@ -35,7 +35,7 @@ Partial Class API_GetContent_Index
         Dim req As System.Net.WebRequest =
             System.Net.WebRequest.Create("https://api.line.me/v2/bot/message/reply")
         Dim requestmessage As Requestmessage = New Requestmessage
-        Const AccesTokun As String = "p/w9bCbcf1BCehRo4gVCvfz7mG+sCLiUF3AeLm3kzrL8ugjKA0JsRYMx/WDnoqNzQhqLjbFXX9QFn/mBQr5wpC9Nrd7uDVjtBGVLDGqlIsbUh+ycI9zhl1rw/UJE6BUawPXWJZ4VMLRk/ItsQkKA3QdB04t89/1O/w1cDnyilFU="
+        Const AccessToken As String = "p/w9bCbcf1BCehRo4gVCvfz7mG+sCLiUF3AeLm3kzrL8ugjKA0JsRYMx/WDnoqNzQhqLjbFXX9QFn/mBQr5wpC9Nrd7uDVjtBGVLDGqlIsbUh+ycI9zhl1rw/UJE6BUawPXWJZ4VMLRk/ItsQkKA3QdB04t89/1O/w1cDnyilFU="
         Try
             len = Request.ContentLength
             bData = Request.BinaryRead(len)
@@ -136,7 +136,7 @@ Partial Class API_GetContent_Index
             req.ContentType = "application/json"
             'POST送信するデータの長さを指定
             req.ContentLength = postDataBytes.Length
-            req.Headers.Add("Authorization", "Bearer " + AccessToken);
+            req.Headers.Add("Authorization", "Bearer " & AccessToken)
             'データをPOST送信するためのStreamを取得
             Dim reqStream As System.IO.Stream = req.GetRequestStream()
             '送信するデータを書き込む

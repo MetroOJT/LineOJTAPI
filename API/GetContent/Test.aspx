@@ -8,7 +8,7 @@
     <title></title>
 </head>
 <body>
-    <form id="form1" runat="server" method="post" action="Index.aspx">
+    <form id="form1" runat="server" method="post" action="https://www.m-netservice.jp/LineOJTAPI/API/GetContent/Index.aspx">
     <div>
     <textarea id="test" runat="server"></textarea>
         <input type="submit" value="送信" />
