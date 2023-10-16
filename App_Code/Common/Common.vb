@@ -14,6 +14,12 @@ Public Class Common
 
 #Region "Table"
     Public gctbl_UserMst As String = ""
+    Public gctbl_EventMst As String = ""
+    Public gctbl_MenuMst As String = ""
+    Public gctbl_MessageMst As String = ""
+    Public gctbl_UsedKeyword As String = ""
+
+
 #End Region
 
 #Region "コンストラクタ"
@@ -88,6 +94,11 @@ Public Class Common
             scfg_LineMsg = scfg_LineMsg & "."
 
             gctbl_UserMst = scfg_LineMsg & "usermst"
+            gctbl_EventMst = scfg_LineMsg & "eventmst"
+            gctbl_MenuMst = scfg_LineMsg & "menumst"
+            gctbl_MessageMst = scfg_LineMsg & "messagemst"
+            gctbl_UsedKeyword = scfg_LineMsg & "usedkeyword"
+
 
         Catch ex As Exception
 
