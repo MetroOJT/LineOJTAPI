@@ -18,6 +18,7 @@ Public Class Common
     Public gctbl_MenuMst As String = ""
     Public gctbl_MessageMst As String = ""
     Public gctbl_UsedKeyword As String = ""
+    Public gctbl_LogMst As String = ""
 
 
 #End Region
@@ -98,6 +99,7 @@ Public Class Common
             gctbl_MenuMst = scfg_LineMsg & "menumst"
             gctbl_MessageMst = scfg_LineMsg & "messagemst"
             gctbl_UsedKeyword = scfg_LineMsg & "usedkeyword"
+            gctbl_LogMst = scfg_LineMsg & "logmst"
 
 
         Catch ex As Exception
