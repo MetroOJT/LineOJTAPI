@@ -127,33 +127,38 @@ Partial Class API_GetContent_Index
                     End If
                 End If
             End If
-            'POST送信する文字列を作成
-            Dim postData As String = JsonConvert.SerializeObject(requestmessage)
-            Response.Write(postData)
-            'バイト型配列に変換
-            Dim postDataBytes As Byte() = System.Text.Encoding.ASCII.GetBytes(postData)
-            req.Method = "POST"
-            req.ContentType = "application/json"
-            'POST送信するデータの長さを指定
-            req.ContentLength = postDataBytes.Length
-            req.Headers.Add("Authorization", "Bearer " & AccessToken)
-            'データをPOST送信するためのStreamを取得
-            Dim reqStream As System.IO.Stream = req.GetRequestStream()
-            '送信するデータを書き込む
-            reqStream.Write(postDataBytes, 0, postDataBytes.Length)
-            reqStream.Close()
+            Try
+                'POST送信する文字列を作成
+                Dim postData As String = JsonConvert.SerializeObject(requestmessage)
+                Response.Write(postData)
+                'バイト型配列に変換
+                Dim postDataBytes As Byte() = System.Text.Encoding.ASCII.GetBytes(postData)
+                req.Method = "POST"
+                req.ContentType = "application/json"
+                'POST送信するデータの長さを指定
+                req.ContentLength = postDataBytes.Length
+                req.Headers.Add("Authorization", "Bearer " & AccessToken)
+                'データをPOST送信するためのStreamを取得
+                Dim reqStream As System.IO.Stream = req.GetRequestStream()
+                '送信するデータを書き込む
+                reqStream.Write(postDataBytes, 0, postDataBytes.Length)
+                reqStream.Close()
 
-            'サーバーからの応答を受信するためのWebResponseを取得
-            Dim res As System.Net.HttpWebResponse = req.GetResponse()
-            '応答データを受信するためのStreamを取得
-            Dim resStream As System.IO.Stream = res.GetResponseStream()
-            '受信して表示
-            Dim sr As New System.IO.StreamReader(resStream, enc)
-            Dim num As Integer = res.StatusCode
-            Response.Write(num)
+                'サーバーからの応答を受信するためのWebResponseを取得
+                Dim res As System.Net.HttpWebResponse = req.GetResponse()
+                '応答データを受信するためのStreamを取得
+                Dim resStream As System.IO.Stream = res.GetResponseStream()
+                '受信して表示
+                Dim sr As New System.IO.StreamReader(resStream, enc)
+                Dim num As Integer = res.StatusCode
+                Response.Write(num)
 
-            '閉じる
-            sr.Close()
+                '閉じる
+                sr.Close()
+            Catch ex As HttpException
+                sRet = ex.Message
+                Response.Write(sRet)
+            End Try
         Catch ex As Exception
             sRet = ex.Message
             Response.Write(sRet)
