@@ -1,6 +1,7 @@
 ﻿Imports Newtonsoft.Json
 Imports System.Net
 
+
 Partial Class API_GetContent_Index
     Inherits System.Web.UI.Page
     Public Class Requestmessage
@@ -134,7 +135,7 @@ Partial Class API_GetContent_Index
                 Dim postData As String = JsonConvert.SerializeObject(requestmessage)
                 Response.Write(postData)
                 'バイト型配列に変換
-                Dim postDataBytes As Byte() = System.Text.Encoding.ASCII.GetBytes(postData)
+                Dim postDataBytes As Byte() = System.Text.Encoding.UTF8.GetBytes(postData)
                 req.Method = "POST"
                 req.ContentType = "application/json"
                 'POST送信するデータの長さを指定
@@ -173,4 +174,3 @@ Partial Class API_GetContent_Index
         End Try
     End Sub
 End Class
-'json形式の送信データを作る処理制作中
