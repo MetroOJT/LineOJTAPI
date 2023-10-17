@@ -47,7 +47,7 @@ Partial Class API_GetContent_Index
             left = sPostData.IndexOf("{")
             right = sPostData.LastIndexOf("}")
             sjson = sPostData.Substring(left, right - left + 1)
-
+            cCom.CmnWriteStepLog(sjson)
             jsonObj = JsonConvert.DeserializeObject(sjson)
             eventsObj = jsonObj("events")(0)
             messageObj = eventsObj(eventsObj("type").ToString())
@@ -131,6 +131,11 @@ Partial Class API_GetContent_Index
                 End If
             End If
             Try
+                cDB.AddWithValue("@SendRecv", "send")
+                sSQL.Clear()
+                sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+                sSQL.Append(" VALUES(@ReplyToken, @Line_UserID, @SendRecv, 999, 'Log', NOW())")
+                cDB.ExecuteSQL(sSQL.ToString)
                 'POST送信する文字列を作成
                 Dim postData As String = JsonConvert.SerializeObject(requestmessage)
                 Response.Write(postData)
@@ -155,16 +160,34 @@ Partial Class API_GetContent_Index
                 Dim sr As New System.IO.StreamReader(resStream, enc)
                 Dim num As Integer = res.StatusCode
                 Response.Write(num)
+                cDB.AddWithValue("@Log", sr.ReadToEnd())
+                cDB.AddWithValue("@Status", num)
+                sSQL.Clear()
+                sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
+                sSQL.Append(" SET Status = @Status, Log = @Log")
+                sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+                cDB.ExecuteSQL(sSQL.ToString)
 
                 '閉じる
                 sr.Close()
             Catch ex As HttpException
                 sRet = ex.Message
-                Response.Write(sRet)
+                cDB.AddWithValue("@Log", sRet)
+                sSQL.Clear()
+                sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
+                sSQL.Append(" SET Log = @Log")
+                sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+                cDB.ExecuteSQL(sSQL.ToString)
             End Try
         Catch ex As Exception
             sRet = ex.Message
             Response.Write(sRet)
+            cDB.AddWithValue("@Log", sRet)
+            sSQL.Clear()
+            sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
+            sSQL.Append(" SET Log = @Log")
+            sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+            cDB.ExecuteSQL(sSQL.ToString)
         Finally
             cDB.DrClose()
             cDB.Dispose()
