@@ -1,4 +1,5 @@
 ﻿Imports Newtonsoft.Json
+Imports System.Net
 
 Partial Class API_GetContent_Index
     Inherits System.Web.UI.Page
@@ -37,6 +38,7 @@ Partial Class API_GetContent_Index
         Dim requestmessage As Requestmessage = New Requestmessage
         Const AccessToken As String = "p/w9bCbcf1BCehRo4gVCvfz7mG+sCLiUF3AeLm3kzrL8ugjKA0JsRYMx/WDnoqNzQhqLjbFXX9QFn/mBQr5wpC9Nrd7uDVjtBGVLDGqlIsbUh+ycI9zhl1rw/UJE6BUawPXWJZ4VMLRk/ItsQkKA3QdB04t89/1O/w1cDnyilFU="
         Try
+            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol Or SecurityProtocolType.Tls12
             len = Request.ContentLength
             bData = Request.BinaryRead(len)
             sPostData = enc.GetString(bData)
