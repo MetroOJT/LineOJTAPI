@@ -156,6 +156,7 @@ Partial Class API_GetContent_Index
             sr.Close()
         Catch ex As Exception
             sRet = ex.Message
+            Response.Write(sRet)
         Finally
             cDB.DrClose()
             cDB.Dispose()
