@@ -35,6 +35,7 @@ Partial Class API_GetContent_Index
         Dim Line_UserID As String = ""
         Dim Keyword As String = ""
         Dim ReplyToken As String = ""
+        Dim HasEventID_flg As Boolean = False
         Dim req As System.Net.WebRequest =
             System.Net.WebRequest.Create("https://api.line.me/v2/bot/message/reply")
         Dim requestmessage As Requestmessage = New Requestmessage
@@ -60,6 +61,19 @@ Partial Class API_GetContent_Index
             cDB.AddWithValue("@Line_UserID", Line_UserID)
             cDB.AddWithValue("@Keyword", Keyword)
             cDB.AddWithValue("@ReplyToken", ReplyToken)
+
+            sSQL.Clear()
+            sSQL.Append(" SELECT")
+            sSQL.Append("  EventID")
+            sSQL.Append(" FROM " & cCom.gctbl_EventMst)
+            sSQL.Append(" WHERE Keyword = @Keyword AND")
+            sSQL.Append(" Status = 1 AND")
+            sSQL.Append(" ScheduleFm <= NOW() And ScheduleTo >= NOW()")
+            cDB.SelectSQL(sSQL.ToString)
+            If cDB.ReadDr Then
+                HasEventID_flg = True
+                cDB.AddWithValue("@EventID", cDB.DRData("EventID"))
+            End If
 
             requestmessage.replyToken = ReplyToken
 
@@ -98,7 +112,6 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" ScheduleFm <= NOW() And ScheduleTo >= NOW()")
                 cDB.SelectSQL(sSQL.ToString)
                 If cDB.ReadDr Then
-                    cDB.AddWithValue("@EventID", cDB.DRData("EventID"))
                     sSQL.Clear()
                     sSQL.Append(" INSERT INTO " & cCom.gctbl_UsedKeyword)
                     sSQL.Append(" VALUES(@Line_UserID, @EventID, @ReplyToken, 0)")
@@ -169,6 +182,13 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" SET Status = @Status, Log = @Log")
                 sSQL.Append(" WHERE ReplyToken = @ReplyToken")
                 cDB.ExecuteSQL(sSQL.ToString)
+                If HasEventID_flg Then
+                    sSQL.Clear()
+                    sSQL.Append(" UPDATE " & cCom.gctbl_UsedKeyword)
+                    sSQL.Append(" SET Reply_flg = b'1'")
+                    sSQL.Append(" WHERE Line_UserID = @Line_UserID AND EventID = @EventID")
+                    cDB.ExecuteSQL(sSQL.ToString)
+                End If
 
                 '閉じる
                 sr.Close()
@@ -182,11 +202,12 @@ Partial Class API_GetContent_Index
                 Dim num As Integer = res.StatusCode
                 'sRet = ex.Message
                 'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
-                cDB.AddWithValue("@Log", sr.ReadToEnd())
+                Dim dumy As String = sr.ReadToEnd()
+                cDB.AddWithValue("@Log1", dumy)
                 cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-                sSQL.Append(" SET Log = @Log, Status = @Status")
+                sSQL.Append(" SET Log = @Log1, Status = @Status")
                 sSQL.Append(" WHERE ReplyToken = @ReplyToken")
                 cDB.ExecuteSQL(sSQL.ToString)
             End Try
@@ -194,10 +215,10 @@ Partial Class API_GetContent_Index
             sRet = ex.Message
             Response.Write(sRet)
             'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
-            cDB.AddWithValue("@Log", sRet)
+            cDB.AddWithValue("@Log2", sRet)
             sSQL.Clear()
             sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-            sSQL.Append(" SET Log = @Log")
+            sSQL.Append(" SET Log = @Log2")
             sSQL.Append(" WHERE ReplyToken = @ReplyToken")
             cDB.ExecuteSQL(sSQL.ToString)
         Finally
