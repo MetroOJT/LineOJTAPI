@@ -179,7 +179,7 @@ Partial Class API_GetContent_Index
                 Dim sr As New System.IO.StreamReader(resStream, enc)
                 Dim num As Integer = res.StatusCode
                 'sRet = ex.Message
-                cDB.AddWithValue("@Log", sr.ReadToEnd())
+                cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
                 cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
@@ -190,7 +190,7 @@ Partial Class API_GetContent_Index
         Catch ex As Exception
             sRet = ex.Message
             Response.Write(sRet)
-            cDB.AddWithValue("@Log", sRet)
+            cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
             sSQL.Clear()
             sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
             sSQL.Append(" SET Log = @Log")
