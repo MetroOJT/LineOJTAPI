@@ -31,6 +31,7 @@ Partial Class API_GetContent_Index
         Dim jsonObj As Object = Nothing
         Dim eventsObj As Object = Nothing
         Dim messageObj As Object = Nothing
+        Dim sourceObj As Object = Nothing
         Dim Line_UserID As String = ""
         Dim Keyword As String = ""
         Dim ReplyToken As String = ""
@@ -50,8 +51,9 @@ Partial Class API_GetContent_Index
             cCom.CmnWriteStepLog(sjson)
             jsonObj = JsonConvert.DeserializeObject(sjson)
             eventsObj = jsonObj("events")(0)
-            messageObj = eventsObj(eventsObj("type").ToString())
-            Line_UserID = messageObj("id").ToString()
+            messageObj = eventsObj("message")
+            sourceObj = eventsObj("source")
+            Line_UserID = sourceObj("userId").ToString()
             Keyword = messageObj("text").ToString()
             ReplyToken = eventsObj("replyToken").ToString()
 
@@ -179,7 +181,8 @@ Partial Class API_GetContent_Index
                 Dim sr As New System.IO.StreamReader(resStream, enc)
                 Dim num As Integer = res.StatusCode
                 'sRet = ex.Message
-                cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
+                'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
+                cDB.AddWithValue("@Log", sr.ReadToEnd())
                 cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
@@ -190,7 +193,8 @@ Partial Class API_GetContent_Index
         Catch ex As Exception
             sRet = ex.Message
             Response.Write(sRet)
-            cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
+            'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
+            cDB.AddWithValue("@Log", sRet)
             sSQL.Clear()
             sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
             sSQL.Append(" SET Log = @Log")
