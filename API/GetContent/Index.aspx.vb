@@ -13,7 +13,7 @@ Partial Class API_GetContent_Index
     End Class
     Public Class Messages
         Public Property type As String
-        Public Property message As String
+        Public Property text As String
     End Class
     Public Sub Page_Load(sender As Object, e As EventArgs) Handles Me.Load
         Dim cCom As New Common
@@ -83,7 +83,7 @@ Partial Class API_GetContent_Index
                 If cDB.ReadDr Then
                     Dim messages As Messages = New Messages
                     messages.type = "text"
-                    messages.message = cDB.DRData("Message")
+                    messages.text = cDB.DRData("Message")
                     requestmessage.add_message(messages)
                 End If
             Else
@@ -110,7 +110,7 @@ Partial Class API_GetContent_Index
                     Do Until Not cDB.ReadDr
                         Dim messages As Messages = New Messages
                         messages.type = "text"
-                        messages.message = cDB.DRData("Message")
+                        messages.text = cDB.DRData("Message")
                         requestmessage.add_message(messages)
                     Loop
                 Else
@@ -125,7 +125,7 @@ Partial Class API_GetContent_Index
                     If cDB.ReadDr Then
                         Dim messages As Messages = New Messages
                         messages.type = "text"
-                        messages.message = cDB.DRData("Message")
+                        messages.text = cDB.DRData("Message")
                         requestmessage.add_message(messages)
                     End If
                 End If
@@ -170,12 +170,20 @@ Partial Class API_GetContent_Index
 
                 '閉じる
                 sr.Close()
-            Catch ex As HttpException
-                sRet = ex.Message
-                cDB.AddWithValue("@Log", sRet)
+            Catch ex As WebException
+                'サーバーからの応答を受信するためのWebResponseを取得
+                Dim res As System.Net.HttpWebResponse = ex.Response
+                '応答データを受信するためのStreamを取得
+                Dim resStream As System.IO.Stream = res.GetResponseStream()
+                '受信して表示
+                Dim sr As New System.IO.StreamReader(resStream, enc)
+                Dim num As Integer = res.StatusCode
+                'sRet = ex.Message
+                cDB.AddWithValue("@Log", sr.ReadToEnd())
+                cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-                sSQL.Append(" SET Log = @Log")
+                sSQL.Append(" SET Log = @Log, Status = @Status")
                 sSQL.Append(" WHERE ReplyToken = @ReplyToken")
                 cDB.ExecuteSQL(sSQL.ToString)
             End Try
@@ -197,3 +205,4 @@ Partial Class API_GetContent_Index
         End Try
     End Sub
 End Class
+'reqStream.Writeに文字列だけを入れる
