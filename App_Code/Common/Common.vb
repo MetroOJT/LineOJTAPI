@@ -11,6 +11,7 @@ Public Class Common
 
     Public gcDate_DefaultDate As Date = #1/1/1900#
     Public gcDate_EndDate As Date = #12/31/2099#
+    Public gcFormatCouponCode As String = "{CouponCode}"
 
 #Region "Table"
     Public gctbl_UserMst As String = ""
@@ -466,6 +467,31 @@ Public Class Common
     Function CmnReplaceSingleQuote(ByVal sReplaceStr As String) As String
         Return sReplaceStr.Replace("'", "''")
     End Function
+
+
+    ''' <summary>
+    ''' ランダムな文字列を生成する
+    ''' </summary>
+    ''' <param name="length">生成する文字列の長さ</param>
+    ''' <returns>生成された文字列</returns>
+    Public Function CmnGenerateAlphaNumeric(ByVal length As Integer) As String
+        'パスワードに使用する文字
+        Const randomChars As String = "0123456789abcdefghijklmnopqrstuvwxyz"
+        Dim sb As New System.Text.StringBuilder(length)
+        Dim r As New Random()
+
+        For i As Integer = 0 To length - 1
+            '文字の位置をランダムに選択
+            Dim pos As Integer = r.Next(randomChars.Length)
+            '選択された位置の文字を取得
+            Dim c As Char = randomChars(pos)
+            'パスワードに追加
+            sb.Append(c)
+        Next
+
+        Return sb.ToString()
+    End Function
+
 
 #End Region
 
