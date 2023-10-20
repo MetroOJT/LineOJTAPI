@@ -35,6 +35,7 @@ Partial Class API_GetContent_Index
         Dim Line_UserID As String = ""
         Dim Keyword As String = ""
         Dim ReplyToken As String = ""
+        Dim CouponCode As String = ""
         Dim HasEventID_flg As Boolean = False
         Dim req As System.Net.WebRequest =
             System.Net.WebRequest.Create("https://api.line.me/v2/bot/message/reply")
@@ -49,7 +50,7 @@ Partial Class API_GetContent_Index
             left = sPostData.IndexOf("{")
             right = sPostData.LastIndexOf("}")
             sjson = sPostData.Substring(left, right - left + 1)
-            cCom.CmnWriteStepLog(sjson)
+            'cCom.CmnWriteStepLog(sjson)
             jsonObj = JsonConvert.DeserializeObject(sjson)
             eventsObj = jsonObj("events")(0)
             messageObj = eventsObj("message")
@@ -62,6 +63,17 @@ Partial Class API_GetContent_Index
             cDB.AddWithValue("@Keyword", Keyword)
             cDB.AddWithValue("@ReplyToken", ReplyToken)
 
+            requestmessage.replyToken = ReplyToken
+
+            'Recvlog追加
+            cDB.AddWithValue("@Recv", "Recv")
+            cDB.AddWithValue("@RecvLog", sjson)
+
+            sSQL.Clear()
+            sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+            sSQL.Append(" VALUES(@ReplyToken, @Line_UserID, @Recv, 200, @RecvLog, NOW())")
+            cDB.ExecuteSQL(sSQL.ToString)
+
             sSQL.Clear()
             sSQL.Append(" SELECT")
             sSQL.Append("  EventID")
@@ -73,69 +85,24 @@ Partial Class API_GetContent_Index
             If cDB.ReadDr Then
                 HasEventID_flg = True
                 cDB.AddWithValue("@EventID", cDB.DRData("EventID"))
-            End If
-
-            requestmessage.replyToken = ReplyToken
-
-            sSQL.Clear()
-            sSQL.Append(" SELECT")
-            sSQL.Append("  Line_UserID")
-            sSQL.Append(" ,Keyword")
-            sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
-            sSQL.Append(" INNER JOIN " & cCom.gctbl_EventMst)
-            sSQL.Append(" ON " & cCom.gctbl_UsedKeyword & ".EventID =  " & cCom.gctbl_EventMst & ".EventID")
-            sSQL.Append(" WHERE Line_UserID = @Line_UserID AND Keyword = @Keyword")
-            cDB.SelectSQL(sSQL.ToString)
-
-            If cDB.ReadDr Then
                 sSQL.Clear()
                 sSQL.Append(" SELECT")
-                sSQL.Append("  Message")
-                sSQL.Append(" FROM " & cCom.gctbl_EventMst)
-                sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
-                sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
-                sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 2")
+                sSQL.Append("  Line_UserID")
+                sSQL.Append(" ,Keyword")
+                sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
+                sSQL.Append(" INNER JOIN " & cCom.gctbl_EventMst)
+                sSQL.Append(" ON " & cCom.gctbl_UsedKeyword & ".EventID =  " & cCom.gctbl_EventMst & ".EventID")
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID AND Keyword = @Keyword")
                 cDB.SelectSQL(sSQL.ToString)
+
                 If cDB.ReadDr Then
-                    Dim messages As Messages = New Messages
-                    messages.type = "text"
-                    messages.text = cDB.DRData("Message")
-                    requestmessage.add_message(messages)
-                End If
-            Else
-                sSQL.Clear()
-                sSQL.Append(" SELECT")
-                sSQL.Append("  EventID")
-                sSQL.Append(" FROM " & cCom.gctbl_EventMst)
-                sSQL.Append(" WHERE Keyword = @Keyword AND")
-                sSQL.Append(" Status = 1 AND")
-                sSQL.Append(" ScheduleFm <= NOW() And ScheduleTo >= NOW()")
-                cDB.SelectSQL(sSQL.ToString)
-                If cDB.ReadDr Then
-                    sSQL.Clear()
-                    sSQL.Append(" INSERT INTO " & cCom.gctbl_UsedKeyword)
-                    sSQL.Append(" VALUES(@Line_UserID, @EventID, @ReplyToken, 0)")
-                    cDB.ExecuteSQL(sSQL.ToString)
-                    sSQL.Clear()
-                    sSQL.Append(" SELECT Message")
-                    sSQL.Append(" FROM " & cCom.gctbl_MessageMst)
-                    sSQL.Append(" WHERE EventID = @EventID")
-                    sSQL.Append(" ORDER BY MessageID")
-                    cDB.SelectSQL(sSQL.ToString)
-                    Do Until Not cDB.ReadDr
-                        Dim messages As Messages = New Messages
-                        messages.type = "text"
-                        messages.text = cDB.DRData("Message")
-                        requestmessage.add_message(messages)
-                    Loop
-                Else
                     sSQL.Clear()
                     sSQL.Append(" SELECT")
                     sSQL.Append("  Message")
                     sSQL.Append(" FROM " & cCom.gctbl_EventMst)
                     sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
                     sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
-                    sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 1")
+                    sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 2")
                     cDB.SelectSQL(sSQL.ToString)
                     If cDB.ReadDr Then
                         Dim messages As Messages = New Messages
@@ -143,13 +110,69 @@ Partial Class API_GetContent_Index
                         messages.text = cDB.DRData("Message")
                         requestmessage.add_message(messages)
                     End If
+                Else
+                    sSQL.Clear()
+                    sSQL.Append(" SELECT Message")
+                    sSQL.Append(" FROM " & cCom.gctbl_MessageMst)
+                    sSQL.Append(" WHERE EventID = @EventID")
+                    sSQL.Append(" ORDER BY MessageID")
+                    cDB.SelectSQL(sSQL.ToString)
+                    Dim message_Array As New ArrayList()
+                    Do Until Not cDB.ReadDr
+                        message_Array.Add(cDB.DRData("Message"))
+                    Loop
+                    Dim find_CouponCode_Flg As Boolean = False
+                    For Each message In message_Array
+                        If Not find_CouponCode_Flg And message.IndexOf(cCom.gcFormatCouponCode) >= 0 Then
+                            Dim count As Integer = 0
+                            While True
+                                count += 1
+                                CouponCode = cCom.CmnGenerateAlphaNumeric(10)
+                                cDB.AddWithValue("@CouponCode" & count, CouponCode)
+                                sSQL.Clear()
+                                sSQL.Append(" SELECT CouponCode")
+                                sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
+                                sSQL.Append(" WHERE CouponCode = @CouponCode" & count)
+                                cDB.SelectSQL(sSQL.ToString)
+                                If Not cDB.IsSelectExistRecord() Then
+                                    Exit While
+                                End If
+                            End While
+                            find_CouponCode_Flg = True
+                        End If
+                        message = message.Replace(cCom.gcFormatCouponCode, CouponCode)
+                        Dim messages As Messages = New Messages
+                        messages.type = "text"
+                        messages.text = message
+                        requestmessage.add_message(messages)
+                    Next
+                    cDB.AddWithValue("@CouponCode", CouponCode)
+                    sSQL.Clear()
+                    sSQL.Append(" INSERT INTO " & cCom.gctbl_UsedKeyword)
+                    sSQL.Append(" VALUES(@Line_UserID, @EventID, @ReplyToken, 0, @CouponCode, 1)")
+                    cDB.ExecuteSQL(sSQL.ToString)
+                End If
+            Else
+                sSQL.Clear()
+                sSQL.Append(" SELECT")
+                sSQL.Append("  Message")
+                sSQL.Append(" FROM " & cCom.gctbl_EventMst)
+                sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
+                sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
+                sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 1")
+                cDB.SelectSQL(sSQL.ToString)
+                If cDB.ReadDr Then
+                    Dim messages As Messages = New Messages
+                    messages.type = "text"
+                    messages.text = cDB.DRData("Message")
+                    requestmessage.add_message(messages)
                 End If
             End If
             Try
-                cDB.AddWithValue("@SendRecv", "send")
+                cDB.AddWithValue("@Send", "Send")
                 sSQL.Clear()
                 sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
-                sSQL.Append(" VALUES(@ReplyToken, @Line_UserID, @SendRecv, 999, 'Log', NOW())")
+                sSQL.Append(" VALUES(@ReplyToken, @Line_UserID, @Send, 999, 'Log', NOW())")
                 cDB.ExecuteSQL(sSQL.ToString)
                 'POST送信する文字列を作成
                 Dim postData As String = JsonConvert.SerializeObject(requestmessage)
@@ -175,12 +198,13 @@ Partial Class API_GetContent_Index
                 Dim sr As New System.IO.StreamReader(resStream, enc)
                 Dim num As Integer = res.StatusCode
                 Response.Write(num)
-                cDB.AddWithValue("@Log", sr.ReadToEnd())
+                cDB.AddWithValue("@SendLog", sr.ReadToEnd())
                 cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-                sSQL.Append(" SET Status = @Status, Log = @Log")
+                sSQL.Append(" SET Status = @Status, Log = @SendLog")
                 sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+                sSQL.Append(" AND SendRecv = @Send")
                 cDB.ExecuteSQL(sSQL.ToString)
                 If HasEventID_flg Then
                     sSQL.Clear()
@@ -203,23 +227,26 @@ Partial Class API_GetContent_Index
                 'sRet = ex.Message
                 'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
                 Dim dumy As String = sr.ReadToEnd()
-                cDB.AddWithValue("@Log1", dumy)
+                cDB.AddWithValue("@SendLog1", dumy)
                 cDB.AddWithValue("@Status", num)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-                sSQL.Append(" SET Log = @Log1, Status = @Status")
+                sSQL.Append(" SET Log = @SendLog1, Status = @Status")
                 sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+                sSQL.Append(" AND SendRecv = @Send")
                 cDB.ExecuteSQL(sSQL.ToString)
+                sr.Close()
             End Try
         Catch ex As Exception
             sRet = ex.Message
             Response.Write(sRet)
             'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
-            cDB.AddWithValue("@Log2", sRet)
+            cDB.AddWithValue("@SendLog2", sRet)
             sSQL.Clear()
             sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-            sSQL.Append(" SET Log = @Log2")
+            sSQL.Append(" SET Log = @SendLog2")
             sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+            sSQL.Append(" AND SendRecv = @Send")
             cDB.ExecuteSQL(sSQL.ToString)
         Finally
             cDB.DrClose()
@@ -230,4 +257,3 @@ Partial Class API_GetContent_Index
         End Try
     End Sub
 End Class
-'reqStream.Writeに文字列だけを入れる
