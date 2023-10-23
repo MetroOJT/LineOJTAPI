@@ -15,6 +15,9 @@ Partial Class API_GetContent_Index
         Public Property type As String
         Public Property text As String
     End Class
+    Public Sub Pre_Load(sender As Object, e As EventArgs) Handles Me.PreLoad
+        ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol Or SecurityProtocolType.Tls12
+    End Sub
     Public Sub Page_Load(sender As Object, e As EventArgs) Handles Me.Load
         Dim cCom As New Common
         Dim cDB As New CommonDB
@@ -42,7 +45,6 @@ Partial Class API_GetContent_Index
         Dim requestmessage As Requestmessage = New Requestmessage
         Const AccessToken As String = "p/w9bCbcf1BCehRo4gVCvfz7mG+sCLiUF3AeLm3kzrL8ugjKA0JsRYMx/WDnoqNzQhqLjbFXX9QFn/mBQr5wpC9Nrd7uDVjtBGVLDGqlIsbUh+ycI9zhl1rw/UJE6BUawPXWJZ4VMLRk/ItsQkKA3QdB04t89/1O/w1cDnyilFU="
         Try
-            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol Or SecurityProtocolType.Tls12
             len = Request.ContentLength
             bData = Request.BinaryRead(len)
             sPostData = enc.GetString(bData)
@@ -50,7 +52,6 @@ Partial Class API_GetContent_Index
             left = sPostData.IndexOf("{")
             right = sPostData.LastIndexOf("}")
             sjson = sPostData.Substring(left, right - left + 1)
-            'cCom.CmnWriteStepLog(sjson)
             jsonObj = JsonConvert.DeserializeObject(sjson)
             eventsObj = jsonObj("events")(0)
             messageObj = eventsObj("message")
@@ -62,6 +63,7 @@ Partial Class API_GetContent_Index
             cDB.AddWithValue("@Line_UserID", Line_UserID)
             cDB.AddWithValue("@Keyword", Keyword)
             cDB.AddWithValue("@ReplyToken", ReplyToken)
+            cDB.AddWithValue("@Send", "Send")
 
             requestmessage.replyToken = ReplyToken
 
@@ -169,7 +171,6 @@ Partial Class API_GetContent_Index
                 End If
             End If
             Try
-                cDB.AddWithValue("@Send", "Send")
                 sSQL.Clear()
                 sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
                 sSQL.Append(" VALUES(@ReplyToken, @Line_UserID, @Send, 999, 'Log', NOW())")
@@ -178,18 +179,20 @@ Partial Class API_GetContent_Index
                 Dim postData As String = JsonConvert.SerializeObject(requestmessage)
                 Response.Write(postData)
                 'バイト型配列に変換
-                Dim postDataBytes As Byte() = System.Text.Encoding.UTF8.GetBytes(postData)
+                'Dim postDataBytes As Byte() = System.Text.Encoding.UTF8.GetBytes(postData)
                 req.Method = "POST"
                 req.ContentType = "application/json"
                 'POST送信するデータの長さを指定
-                req.ContentLength = postDataBytes.Length
+                'req.ContentLength = postDataBytes.Length
                 req.Headers.Add("Authorization", "Bearer " & AccessToken)
                 'データをPOST送信するためのStreamを取得
-                Dim reqStream As System.IO.Stream = req.GetRequestStream()
-                '送信するデータを書き込む
-                reqStream.Write(postDataBytes, 0, postDataBytes.Length)
-                reqStream.Close()
-
+                'Dim reqStream As System.IO.Stream = req.GetRequestStream()
+                ''送信するデータを書き込む
+                'reqStream.Write(postDataBytes, 0, postDataBytes.Length)
+                'reqStream.Close()
+                Using reqStream As New System.IO.StreamWriter(req.GetRequestStream())
+                    reqStream.Write(postData)
+                End Using
                 'サーバーからの応答を受信するためのWebResponseを取得
                 Dim res As System.Net.HttpWebResponse = req.GetResponse()
                 '応答データを受信するためのStreamを取得
@@ -217,6 +220,7 @@ Partial Class API_GetContent_Index
                 '閉じる
                 sr.Close()
             Catch ex As WebException
+                Response.Write(ex.Message)
                 'サーバーからの応答を受信するためのWebResponseを取得
                 Dim res As System.Net.HttpWebResponse = ex.Response
                 '応答データを受信するためのStreamを取得
@@ -239,7 +243,9 @@ Partial Class API_GetContent_Index
             End Try
         Catch ex As Exception
             sRet = ex.Message
-            Response.Write(sRet)
+            If sRet <> "" Then
+                cCom.CmnWriteStepLog(sRet)
+            End If
             'cDB.AddWithValue("@Log", sjson & "|" & JsonConvert.SerializeObject(requestmessage))
             cDB.AddWithValue("@SendLog2", sRet)
             sSQL.Clear()
