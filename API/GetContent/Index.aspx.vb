@@ -244,7 +244,7 @@ Partial Class API_GetContent_Index
                 '受信して表示
                 Dim sr As New System.IO.StreamReader(resStream, enc)
                 Dim statuscode As Integer = res.StatusCode
-                cDB.AddWithValue("@SendLog", sr.ReadToEnd())
+                cDB.AddWithValue("@SendLog", postData)
                 cDB.AddWithValue("@Status", statuscode)
 
                 '送信ログを更新
