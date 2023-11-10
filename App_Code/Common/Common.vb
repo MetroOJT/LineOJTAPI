@@ -20,6 +20,7 @@ Public Class Common
     Public gctbl_MessageMst As String = ""
     Public gctbl_UsedKeyword As String = ""
     Public gctbl_LogMst As String = ""
+    Public gctbl_LineUserMst As String = ""
 
 
 #End Region
@@ -101,6 +102,7 @@ Public Class Common
             gctbl_MessageMst = scfg_LineMsg & "messagemst"
             gctbl_UsedKeyword = scfg_LineMsg & "usedkeyword"
             gctbl_LogMst = scfg_LineMsg & "logmst"
+            gctbl_LineUserMst = scfg_LineMsg & "lineusermst"
 
 
         Catch ex As Exception
