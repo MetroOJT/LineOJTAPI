@@ -255,6 +255,28 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" AND SendRecv = @Send")
                 cDB.ExecuteSQL(sSQL.ToString)
 
+                'Line_UserIDが登録済みか確認
+                sSQL.Clear()
+                sSQL.Append(" SELECT Line_UserID")
+                sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                cDB.SelectSQL(sSQL.ToString)
+
+                '未登録の場合挿入
+                If Not cDB.IsSelectExistRecord() Then
+                    sSQL.Clear()
+                    sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
+                    sSQL.Append(" VALUES (@Line_UserID, NOW(), NOW())")
+                    cDB.ExecuteSQL(sSQL.ToString)
+                Else
+                    '登録済みの場合
+                    sSQL.Clear()
+                    sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
+                    sSQL.Append(" SET Last_Log_Datetime = NOW()")
+                    sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                    cDB.ExecuteSQL(sSQL.ToString)
+                End If
+
                 'Reply_flgを1(送信済み)にする
                 If HasEventID_flg Then
                     sSQL.Clear()
