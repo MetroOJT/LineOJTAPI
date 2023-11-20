@@ -257,22 +257,27 @@ Partial Class API_GetContent_Index
 
                 'Line_UserIDが登録済みか確認
                 sSQL.Clear()
-                sSQL.Append(" SELECT Line_UserID")
+                sSQL.Append(" SELECT " & cCom.gctbl_LineUserMst & ".Line_UserID, MAX(LogID) AS Last_LogID")
                 sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
-                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                sSQL.Append(" JOIN " & cCom.gctbl_LogMst)
+                sSQL.Append(" ON " & cCom.gctbl_LineUserMst & ".Line_UserID = " & cCom.gctbl_LogMst & ".Line_UserID")
+                sSQL.Append(" WHERE " & cCom.gctbl_LineUserMst & "Line_UserID = @Line_UserID")
+                sSQL.Append(" GROUP BY Line_UserID")
                 cDB.SelectSQL(sSQL.ToString)
 
                 '未登録の場合挿入
                 If Not cDB.IsSelectExistRecord() Then
+                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID").ToString)
                     sSQL.Clear()
                     sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" VALUES (@Line_UserID, NOW(), NOW())")
+                    sSQL.Append(" VALUES (@Line_UserID, NOW(), @Last_LogID)")
                     cDB.ExecuteSQL(sSQL.ToString)
                 Else
                     '登録済みの場合
+                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID").ToString)
                     sSQL.Clear()
                     sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" SET Last_Log_Datetime = NOW()")
+                    sSQL.Append(" SET Last_LogID = @Last_LogID")
                     sSQL.Append(" WHERE Line_UserID = @Line_UserID")
                     cDB.ExecuteSQL(sSQL.ToString)
                 End If
