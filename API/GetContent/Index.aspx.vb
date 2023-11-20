@@ -267,21 +267,23 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" GROUP BY Line_UserID")
                 cDB.SelectSQL(sSQL.ToString)
 
-                '未登録の場合挿入
-                If Not cDB.IsSelectExistRecord() Then
-                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID").ToString)
-                    sSQL.Clear()
-                    sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" VALUES (@Line_UserID, NOW(), @Last_LogID)")
-                    cDB.ExecuteSQL(sSQL.ToString)
-                Else
-                    '登録済みの場合
-                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID").ToString)
-                    sSQL.Clear()
-                    sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" SET Last_LogID = @Last_LogID")
-                    sSQL.Append(" WHERE Line_UserID = @Line_UserID")
-                    cDB.ExecuteSQL(sSQL.ToString)
+                If cDB.ReadDr Then
+                    '未登録の場合挿入
+                    If Not cDB.IsSelectExistRecord() Then
+                        cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
+                        sSQL.Clear()
+                        sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
+                        sSQL.Append(" VALUES (@Line_UserID, NOW(), @Last_LogID)")
+                        cDB.ExecuteSQL(sSQL.ToString)
+                    Else
+                        '登録済みの場合
+                        cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
+                        sSQL.Clear()
+                        sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
+                        sSQL.Append(" SET Last_LogID = @Last_LogID")
+                        sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                        cDB.ExecuteSQL(sSQL.ToString)
+                    End If
                 End If
 
                 'Reply_flgを1(送信済み)にする
