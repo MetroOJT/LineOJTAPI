@@ -263,7 +263,7 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
                 sSQL.Append(" JOIN " & cCom.gctbl_LogMst)
                 sSQL.Append(" ON " & cCom.gctbl_LineUserMst & ".Line_UserID = " & cCom.gctbl_LogMst & ".Line_UserID")
-                sSQL.Append(" WHERE " & cCom.gctbl_LineUserMst & "Line_UserID = @Line_UserID")
+                sSQL.Append(" WHERE " & cCom.gctbl_LineUserMst & ".Line_UserID = @Line_UserID")
                 sSQL.Append(" GROUP BY Line_UserID")
                 cDB.SelectSQL(sSQL.ToString)
 
