@@ -99,6 +99,7 @@ Partial Class API_GetContent_Index
             'Recvlog追加
             sSQL.Clear()
             sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+            sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
             sSQL.Append(" VALUES(@ReplyToken, @Recv, @Line_UserID, 200, @RecvLog, NOW())")
             cDB.ExecuteSQL(sSQL.ToString)
 
@@ -226,6 +227,7 @@ Partial Class API_GetContent_Index
                 '仮送信ログを登録
                 sSQL.Clear()
                 sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+                sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
                 sSQL.Append(" VALUES(@ReplyToken, @Send, @Line_UserID, 999, 'Log', NOW())")
                 cDB.ExecuteSQL(sSQL.ToString)
                 'POST送信するデータを作成
