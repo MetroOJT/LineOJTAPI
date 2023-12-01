@@ -257,27 +257,33 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" AND SendRecv = @Send")
                 cDB.ExecuteSQL(sSQL.ToString)
 
+                '最後のログIDを取得
+                sSQL.Clear()
+                sSQL.Append(" SELECT")
+                sSQL.Append(" MAX(LogID) AS Last_LogID")
+                sSQL.Append(" FROM " & cCom.gctbl_LogMst)
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                cDB.SelectSQL(sSQL.ToString)
+                If cDB.ReadDr Then
+                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
+                End If
+
                 'Line_UserIDが登録済みか確認
                 sSQL.Clear()
-                sSQL.Append(" SELECT " & cCom.gctbl_LineUserMst & ".Line_UserID, MAX(LogID) AS Last_LogID")
+                sSQL.Append(" SELECT")
+                sSQL.Append(" *")
                 sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
-                sSQL.Append(" JOIN " & cCom.gctbl_LogMst)
-                sSQL.Append(" ON " & cCom.gctbl_LineUserMst & ".Line_UserID = " & cCom.gctbl_LogMst & ".Line_UserID")
-                sSQL.Append(" WHERE " & cCom.gctbl_LineUserMst & ".Line_UserID = @Line_UserID")
-                sSQL.Append(" GROUP BY Line_UserID")
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
                 cDB.SelectSQL(sSQL.ToString)
-
 
                 '未登録の場合挿入
                 If Not cDB.IsSelectExistRecord() Then
-                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
                     sSQL.Clear()
                     sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
                     sSQL.Append(" VALUES (@Line_UserID, NOW(), @Last_LogID)")
                     cDB.ExecuteSQL(sSQL.ToString)
                 Else
                     '登録済みの場合
-                    cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
                     sSQL.Clear()
                     sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
                     sSQL.Append(" SET Last_LogID = @Last_LogID")
