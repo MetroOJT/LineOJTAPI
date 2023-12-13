@@ -93,137 +93,185 @@ Partial Class API_GetContent_Index
             cDB.AddWithValue("@Recv", "Recv")
             cDB.AddWithValue("@RecvLog", sjson)
 
-            'ReplyTokenをrequestmessageに設定
-            requestmessage.replyToken = ReplyToken
-
-            'Recvlog追加
-            sSQL.Clear()
-            sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
-            sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
-            sSQL.Append(" VALUES(@ReplyToken, @Recv, @Line_UserID, 200, @RecvLog, NOW())")
-            cDB.ExecuteSQL(sSQL.ToString)
-
-            '送られてきたキーワードが有効か確認
+            'Line_UserIDが登録済みか確認
             sSQL.Clear()
             sSQL.Append(" SELECT")
-            sSQL.Append("  EventID")
-            sSQL.Append(" FROM " & cCom.gctbl_EventMst)
-            sSQL.Append(" WHERE Keyword = @Keyword AND")
-            sSQL.Append(" Status = 1 AND")
-            sSQL.Append(" ScheduleFm <= NOW() And ScheduleTo >= NOW()")
+            sSQL.Append(" *")
+            sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
+            sSQL.Append(" WHERE Line_UserID = @Line_UserID")
             cDB.SelectSQL(sSQL.ToString)
+            '未登録の場合挿入
+            If Not cDB.IsSelectExistRecord() Then
+                sSQL.Clear()
+                sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" (Line_UserID, Insert_Date)")
+                sSQL.Append(" VALUES (@Line_UserID, NOW())")
+                cDB.ExecuteSQL(sSQL.ToString)
+            End If
 
-            'キーワード有効
+            'クーポンモード取得
+            Dim iCouponMode As Integer = 0
+            sSQL.Clear()
+            sSQL.Append(" SELECT")
+            sSQL.Append(" CouponMode")
+            sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
+            sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+            cDB.SelectSQL(sSQL.ToString)
             If cDB.ReadDr Then
-                HasEventID_flg = True
-                cDB.AddWithValue("@EventID", cDB.DRData("EventID"))
+                iCouponMode = Integer.Parse(cDB.DRData("CouponMode").ToString)
+            End If
 
-                'キーワードが使用済みか確認
+            'クーポンコードボタン押下
+            If (Keyword = "クーポンコード") Then
+                'クーポンモードON
+                iCouponMode = 1
+                requestmessage.add_message("クーポンコードを入力してください")
+                cDB.AddWithValue("@CouponMode", iCouponMode)
+                sSQL.Clear()
+                sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" SET CouponMode = @CouponMode")
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                cDB.ExecuteSQL(sSQL.ToString)
+            ElseIf (iCouponMode = 1) Then
+                'クーポンモードOFF
+                iCouponMode = 0
+                cDB.AddWithValue("@CouponMode", iCouponMode)
+                sSQL.Clear()
+                sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" SET CouponMode = @CouponMode")
+                sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                cDB.ExecuteSQL(sSQL.ToString)
+                'ReplyTokenをrequestmessageに設定
+                requestmessage.replyToken = ReplyToken
+
+                'Recvlog追加
+                sSQL.Clear()
+                sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+                sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
+                sSQL.Append(" VALUES(@ReplyToken, @Recv, @Line_UserID, 200, @RecvLog, NOW())")
+                cDB.ExecuteSQL(sSQL.ToString)
+
+                '送られてきたキーワードが有効か確認
                 sSQL.Clear()
                 sSQL.Append(" SELECT")
-                sSQL.Append("  Line_UserID")
-                sSQL.Append(" ,Keyword")
-                sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
-                sSQL.Append(" INNER JOIN " & cCom.gctbl_EventMst)
-                sSQL.Append(" ON " & cCom.gctbl_UsedKeyword & ".EventID =  " & cCom.gctbl_EventMst & ".EventID")
-                sSQL.Append(" WHERE Line_UserID = @Line_UserID AND Keyword = @Keyword")
+                sSQL.Append("  EventID")
+                sSQL.Append(" FROM " & cCom.gctbl_EventMst)
+                sSQL.Append(" WHERE Keyword = @Keyword AND")
+                sSQL.Append(" Status = 1 AND")
+                sSQL.Append(" ScheduleFm <= NOW() And ScheduleTo >= NOW()")
                 cDB.SelectSQL(sSQL.ToString)
 
-                'キーワード使用済み
+                'キーワード有効
                 If cDB.ReadDr Then
+                    HasEventID_flg = True
+                    cDB.AddWithValue("@EventID", cDB.DRData("EventID"))
 
-                    '使用済みメッセージを取得
+                    'キーワードが使用済みか確認
+                    sSQL.Clear()
+                    sSQL.Append(" SELECT")
+                    sSQL.Append("  Line_UserID")
+                    sSQL.Append(" ,Keyword")
+                    sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
+                    sSQL.Append(" INNER JOIN " & cCom.gctbl_EventMst)
+                    sSQL.Append(" ON " & cCom.gctbl_UsedKeyword & ".EventID =  " & cCom.gctbl_EventMst & ".EventID")
+                    sSQL.Append(" WHERE Line_UserID = @Line_UserID AND Keyword = @Keyword")
+                    cDB.SelectSQL(sSQL.ToString)
+
+                    'キーワード使用済み
+                    If cDB.ReadDr Then
+
+                        '使用済みメッセージを取得
+                        sSQL.Clear()
+                        sSQL.Append(" SELECT")
+                        sSQL.Append("  Message")
+                        sSQL.Append(" FROM " & cCom.gctbl_EventMst)
+                        sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
+                        sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
+                        sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 2")
+                        cDB.SelectSQL(sSQL.ToString)
+                        If cDB.ReadDr Then
+                            requestmessage.add_message(cDB.DRData("Message"))
+                        End If
+
+                        'キーワード未使用
+                    Else
+
+                        'メッセージ取得
+                        sSQL.Clear()
+                        sSQL.Append(" SELECT Message")
+                        sSQL.Append(" FROM " & cCom.gctbl_MessageMst)
+                        sSQL.Append(" WHERE EventID = @EventID")
+                        sSQL.Append(" ORDER BY MessageID")
+                        cDB.SelectSQL(sSQL.ToString)
+
+                        'メッセージリストを作成
+                        Dim message_Array As New ArrayList()
+                        Do Until Not cDB.ReadDr
+                            message_Array.Add(cDB.DRData("Message"))
+                        Loop
+
+                        'クーポンコードの生成を一回に制限する
+                        Dim Generated_CouponCode As Boolean = False
+
+                        'クーポンコードの生成とrequestmessageへの追加
+                        For Each message In message_Array
+                            If Not Generated_CouponCode And message.IndexOf(cCom.gcFormatCouponCode) >= 0 Then
+                                Dim count As Integer = 0
+                                While True
+                                    count += 1
+
+                                    'クーポンコードの生成
+                                    CouponCode = cCom.CmnGenerateAlphaNumeric(10)
+                                    cDB.AddWithValue("@CouponCode" & count, CouponCode)
+
+                                    'クーポンコードが使用済みか確認
+                                    sSQL.Clear()
+                                    sSQL.Append(" SELECT CouponCode")
+                                    sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
+                                    sSQL.Append(" WHERE CouponCode = @CouponCode" & count)
+                                    cDB.SelectSQL(sSQL.ToString)
+
+                                    '未使用の場合Exit
+                                    If Not cDB.IsSelectExistRecord() Then
+                                        Exit While
+                                    End If
+                                End While
+                                Generated_CouponCode = True
+                            End If
+
+                            'クーポンコードに置き換え
+                            message = message.Replace(cCom.gcFormatCouponCode, CouponCode)
+                            requestmessage.add_message(message)
+                        Next
+
+                        'Used_Keywordに追加
+                        cDB.AddWithValue("@CouponCode", CouponCode)
+                        sSQL.Clear()
+                        sSQL.Append(" INSERT INTO " & cCom.gctbl_UsedKeyword)
+                        sSQL.Append(" VALUES(@Line_UserID, @EventID, @ReplyToken, 0, @CouponCode, 1)")
+                        cDB.ExecuteSQL(sSQL.ToString)
+                    End If
+
+                    'キーワード無効
+                Else
+
+                    'キーワード無効メッセージを取得
                     sSQL.Clear()
                     sSQL.Append(" SELECT")
                     sSQL.Append("  Message")
                     sSQL.Append(" FROM " & cCom.gctbl_EventMst)
                     sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
                     sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
-                    sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 2")
+                    sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 1")
                     cDB.SelectSQL(sSQL.ToString)
                     If cDB.ReadDr Then
                         requestmessage.add_message(cDB.DRData("Message"))
                     End If
-
-                    'キーワード未使用
-                Else
-
-                    'メッセージ取得
-                    sSQL.Clear()
-                    sSQL.Append(" SELECT Message")
-                    sSQL.Append(" FROM " & cCom.gctbl_MessageMst)
-                    sSQL.Append(" WHERE EventID = @EventID")
-                    sSQL.Append(" ORDER BY MessageID")
-                    cDB.SelectSQL(sSQL.ToString)
-
-                    'メッセージリストを作成
-                    Dim message_Array As New ArrayList()
-                    Do Until Not cDB.ReadDr
-                        message_Array.Add(cDB.DRData("Message"))
-                    Loop
-
-                    'クーポンコードの生成を一回に制限する
-                    Dim Generated_CouponCode As Boolean = False
-
-                    'クーポンコードの生成とrequestmessageへの追加
-                    For Each message In message_Array
-                        If Not Generated_CouponCode And message.IndexOf(cCom.gcFormatCouponCode) >= 0 Then
-                            Dim count As Integer = 0
-                            While True
-                                count += 1
-
-                                'クーポンコードの生成
-                                CouponCode = cCom.CmnGenerateAlphaNumeric(10)
-                                cDB.AddWithValue("@CouponCode" & count, CouponCode)
-
-                                'クーポンコードが使用済みか確認
-                                sSQL.Clear()
-                                sSQL.Append(" SELECT CouponCode")
-                                sSQL.Append(" FROM " & cCom.gctbl_UsedKeyword)
-                                sSQL.Append(" WHERE CouponCode = @CouponCode" & count)
-                                cDB.SelectSQL(sSQL.ToString)
-
-                                '未使用の場合Exit
-                                If Not cDB.IsSelectExistRecord() Then
-                                    Exit While
-                                End If
-                            End While
-                            Generated_CouponCode = True
-                        End If
-
-                        'クーポンコードに置き換え
-                        message = message.Replace(cCom.gcFormatCouponCode, CouponCode)
-                        requestmessage.add_message(message)
-                    Next
-
-                    'Used_Keywordに追加
-                    cDB.AddWithValue("@CouponCode", CouponCode)
-                    sSQL.Clear()
-                    sSQL.Append(" INSERT INTO " & cCom.gctbl_UsedKeyword)
-                    sSQL.Append(" VALUES(@Line_UserID, @EventID, @ReplyToken, 0, @CouponCode, 1)")
-                    cDB.ExecuteSQL(sSQL.ToString)
-                End If
-
-                'キーワード無効
-            Else
-
-                'キーワード無効メッセージを取得
-                sSQL.Clear()
-                sSQL.Append(" SELECT")
-                sSQL.Append("  Message")
-                sSQL.Append(" FROM " & cCom.gctbl_EventMst)
-                sSQL.Append(" INNER JOIN " & cCom.gctbl_MessageMst)
-                sSQL.Append(" ON " & cCom.gctbl_EventMst & ".EventID = " & cCom.gctbl_MessageMst & ".EventID")
-                sSQL.Append(" WHERE " & cCom.gctbl_EventMst & ".EventID = 0 AND MessageID = 1")
-                cDB.SelectSQL(sSQL.ToString)
-                If cDB.ReadDr Then
-                    requestmessage.add_message(cDB.DRData("Message"))
                 End If
             End If
 
             'POST送信
             Try
-
                 '仮送信ログを登録
                 sSQL.Clear()
                 sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
@@ -268,28 +316,12 @@ Partial Class API_GetContent_Index
                     cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
                 End If
 
-                'Line_UserIDが登録済みか確認
+                '最後のログIDを更新
                 sSQL.Clear()
-                sSQL.Append(" SELECT")
-                sSQL.Append(" *")
-                sSQL.Append(" FROM " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
+                sSQL.Append(" SET Last_LogID = @Last_LogID")
                 sSQL.Append(" WHERE Line_UserID = @Line_UserID")
-                cDB.SelectSQL(sSQL.ToString)
-
-                '未登録の場合挿入
-                If Not cDB.IsSelectExistRecord() Then
-                    sSQL.Clear()
-                    sSQL.Append(" INSERT INTO " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" VALUES (@Line_UserID, NOW(), @Last_LogID)")
-                    cDB.ExecuteSQL(sSQL.ToString)
-                Else
-                    '登録済みの場合
-                    sSQL.Clear()
-                    sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
-                    sSQL.Append(" SET Last_LogID = @Last_LogID")
-                    sSQL.Append(" WHERE Line_UserID = @Line_UserID")
-                    cDB.ExecuteSQL(sSQL.ToString)
-                End If
+                cDB.ExecuteSQL(sSQL.ToString)
 
                 'Reply_flgを1(送信済み)にする
                 If HasEventID_flg Then
