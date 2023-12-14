@@ -93,6 +93,16 @@ Partial Class API_GetContent_Index
             cDB.AddWithValue("@Recv", "Recv")
             cDB.AddWithValue("@RecvLog", sjson)
 
+            'Recvlog追加
+            sSQL.Clear()
+            sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+            sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
+            sSQL.Append(" VALUES(@ReplyToken, @Recv, @Line_UserID, 200, @RecvLog, NOW())")
+            cDB.ExecuteSQL(sSQL.ToString)
+
+            'ReplyTokenをrequestmessageに設定
+            requestmessage.replyToken = ReplyToken
+
             'Line_UserIDが登録済みか確認
             sSQL.Clear()
             sSQL.Append(" SELECT")
@@ -140,15 +150,6 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
                 sSQL.Append(" SET CouponMode = @CouponMode")
                 sSQL.Append(" WHERE Line_UserID = @Line_UserID")
-                cDB.ExecuteSQL(sSQL.ToString)
-                'ReplyTokenをrequestmessageに設定
-                requestmessage.replyToken = ReplyToken
-
-                'Recvlog追加
-                sSQL.Clear()
-                sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
-                sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
-                sSQL.Append(" VALUES(@ReplyToken, @Recv, @Line_UserID, 200, @RecvLog, NOW())")
                 cDB.ExecuteSQL(sSQL.ToString)
 
                 '送られてきたキーワードが有効か確認
@@ -272,38 +273,43 @@ Partial Class API_GetContent_Index
 
             'POST送信
             Try
-                '仮送信ログを登録
-                sSQL.Clear()
-                sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
-                sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
-                sSQL.Append(" VALUES(@ReplyToken, @Send, @Line_UserID, 999, 'Log', NOW())")
-                cDB.ExecuteSQL(sSQL.ToString)
-                'POST送信するデータを作成
-                Dim postData As String = JsonConvert.SerializeObject(requestmessage)
-                req.Method = "POST"
-                req.ContentType = "application/json"
-                req.Headers.Add("Authorization", "Bearer " & AccessToken)
-                Using reqStream As New System.IO.StreamWriter(req.GetRequestStream())
-                    'POST送信
-                    reqStream.Write(postData)
-                End Using
-                'サーバーからの応答を受信するためのWebResponseを取得
-                Dim res As System.Net.HttpWebResponse = req.GetResponse()
-                '応答データを受信するためのStreamを取得
-                Dim resStream As System.IO.Stream = res.GetResponseStream()
-                '受信して表示
-                Dim sr As New System.IO.StreamReader(resStream, enc)
-                Dim statuscode As Integer = res.StatusCode
-                cDB.AddWithValue("@SendLog", postData)
-                cDB.AddWithValue("@Status", statuscode)
+                If requestmessage.messages.Count >= 1 Then
+                    '仮送信ログを登録
+                    sSQL.Clear()
+                    sSQL.Append(" INSERT INTO " & cCom.gctbl_LogMst)
+                    sSQL.Append(" (ReplyToken, SendRecv, Line_UserID, Status, Log, Datetime)")
+                    sSQL.Append(" VALUES(@ReplyToken, @Send, @Line_UserID, 999, 'Log', NOW())")
+                    cDB.ExecuteSQL(sSQL.ToString)
+                    'POST送信するデータを作成
+                    Dim postData As String = JsonConvert.SerializeObject(requestmessage)
+                    req.Method = "POST"
+                    req.ContentType = "application/json"
+                    req.Headers.Add("Authorization", "Bearer " & AccessToken)
+                    Using reqStream As New System.IO.StreamWriter(req.GetRequestStream())
+                        'POST送信
+                        reqStream.Write(postData)
+                    End Using
+                    'サーバーからの応答を受信するためのWebResponseを取得
+                    Dim res As System.Net.HttpWebResponse = req.GetResponse()
+                    '応答データを受信するためのStreamを取得
+                    Dim resStream As System.IO.Stream = res.GetResponseStream()
+                    '受信して表示
+                    Dim sr As New System.IO.StreamReader(resStream, enc)
+                    Dim statuscode As Integer = res.StatusCode
+                    cDB.AddWithValue("@SendLog", postData)
+                    cDB.AddWithValue("@Status", statuscode)
 
-                '送信ログを更新
-                sSQL.Clear()
-                sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
-                sSQL.Append(" SET Status = @Status, Log = @SendLog")
-                sSQL.Append(" WHERE ReplyToken = @ReplyToken")
-                sSQL.Append(" AND SendRecv = @Send")
-                cDB.ExecuteSQL(sSQL.ToString)
+                    '送信ログを更新
+                    sSQL.Clear()
+                    sSQL.Append(" UPDATE " & cCom.gctbl_LogMst)
+                    sSQL.Append(" SET Status = @Status, Log = @SendLog")
+                    sSQL.Append(" WHERE ReplyToken = @ReplyToken")
+                    sSQL.Append(" AND SendRecv = @Send")
+                    cDB.ExecuteSQL(sSQL.ToString)
+
+                    '閉じる
+                    sr.Close()
+                End If
 
                 '最後のログIDを取得
                 sSQL.Clear()
@@ -331,9 +337,6 @@ Partial Class API_GetContent_Index
                     sSQL.Append(" WHERE Line_UserID = @Line_UserID AND EventID = @EventID")
                     cDB.ExecuteSQL(sSQL.ToString)
                 End If
-
-                '閉じる
-                sr.Close()
             Catch ex As WebException
 
                 sRet = ex.Message
