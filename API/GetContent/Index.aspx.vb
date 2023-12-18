@@ -136,19 +136,17 @@ Partial Class API_GetContent_Index
                 'クーポンモードON
                 iCouponMode = 1
                 requestmessage.add_message("クーポンコードを入力してください")
-                cDB.AddWithValue("@CouponMode", iCouponMode)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
-                sSQL.Append(" SET CouponMode = @CouponMode")
+                sSQL.Append(" SET CouponMode = b'" & iCouponMode & "'")
                 sSQL.Append(" WHERE Line_UserID = @Line_UserID")
                 cDB.ExecuteSQL(sSQL.ToString)
             ElseIf (iCouponMode = 1) Then
                 'クーポンモードOFF
                 iCouponMode = 0
-                cDB.AddWithValue("@CouponMode", iCouponMode)
                 sSQL.Clear()
                 sSQL.Append(" UPDATE " & cCom.gctbl_LineUserMst)
-                sSQL.Append(" SET CouponMode = @CouponMode")
+                sSQL.Append(" SET CouponMode = b'" & iCouponMode & "'")
                 sSQL.Append(" WHERE Line_UserID = @Line_UserID")
                 cDB.ExecuteSQL(sSQL.ToString)
 
@@ -317,6 +315,7 @@ Partial Class API_GetContent_Index
                 sSQL.Append(" MAX(LogID) AS Last_LogID")
                 sSQL.Append(" FROM " & cCom.gctbl_LogMst)
                 sSQL.Append(" WHERE Line_UserID = @Line_UserID")
+                sSQL.Append("   AND Status = 200")
                 cDB.SelectSQL(sSQL.ToString)
                 If cDB.ReadDr Then
                     cDB.AddWithValue("@Last_LogID", cDB.DRData("Last_LogID"))
